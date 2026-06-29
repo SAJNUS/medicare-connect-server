@@ -18,9 +18,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware Setup
-// Configure CORS for local development
+// Configure CORS for local and production environments
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // standard Vite frontend ports
+  origin: [
+    'http://localhost:5173', 
+    'http://127.0.0.1:5173',
+    'https://medicare-connect-pearl.vercel.app'
+  ],
   credentials: true,
 }));
 
