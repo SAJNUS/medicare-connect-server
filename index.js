@@ -6,6 +6,7 @@ import { connectDB } from './utils/db.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
+import appointmentRoutes from './routes/appointmentRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -59,6 +60,14 @@ app.get('/api', (req, res) => {
         getAll: "GET /doctors?search=&specialization=&sortBy=",
         getById: "GET /doctors/:id",
         updateVerification: "PATCH /doctors/:id/verification"
+      },
+      appointments: {
+        create: "POST /appointments",
+        getAll: "GET /appointments?patientEmail=&doctorEmail=&status=",
+        getById: "GET /appointments/:id",
+        updateStatus: "PATCH /appointments/:id/status",
+        updatePayment: "PATCH /appointments/:id/payment",
+        delete: "DELETE /appointments/:id"
       }
     }
   });
@@ -76,6 +85,7 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/doctors', doctorRoutes);
+app.use('/appointments', appointmentRoutes);
 
 // Catch-all route for undefined API endpoints
 app.use((req, res) => {
