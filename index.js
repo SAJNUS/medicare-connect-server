@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { connectDB } from './utils/db.js';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +23,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Parse cookies
 app.use(cookieParser());
+
+// Root API Endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome to the MediCare Connect API"
+  });
+});
 
 // Basic Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -50,6 +59,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+  });
 });
