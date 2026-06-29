@@ -1,0 +1,117 @@
+@baseUrl = http://localhost:5000
+
+### ========================================
+### 1. GENERAL & HEALTH CHECKS
+### ========================================
+
+### Root Welcome Endpoint
+GET {{baseUrl}}/
+
+###
+
+### API Documentation List
+GET {{baseUrl}}/api
+
+###
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ========================================
+### 2. AUTHENTICATION (JWT & COOKIES)
+### ========================================
+
+### Generate JWT Token (Admin Login)
+# @name loginAdmin
+POST {{baseUrl}}/auth/jwt
+Content-Type: application/json
+
+{
+  "email": "admin@medicare.com",
+  "role": "Admin"
+}
+
+###
+
+### Generate JWT Token (Doctor Login)
+# @name loginDoctor
+POST {{baseUrl}}/auth/jwt
+Content-Type: application/json
+
+{
+  "email": "sarah.jenkins@medicare.com",
+  "role": "Doctor"
+}
+
+###
+
+### Generate JWT Token (Patient Login)
+# @name loginPatient
+POST {{baseUrl}}/auth/jwt
+Content-Type: application/json
+
+{
+  "email": "alice.smith@example.com",
+  "role": "Patient"
+}
+
+###
+
+### Logout (Clears HTTP-only cookie)
+POST {{baseUrl}}/auth/logout
+
+### ========================================
+### 3. ROLE AUTHORIZATION TESTS
+### ========================================
+# Note: You must run the respective login request above to set the cookie first
+
+### Test Admin Access
+GET {{baseUrl}}/auth/admin-test
+
+###
+
+### Test Doctor Access
+GET {{baseUrl}}/auth/doctor-test
+
+###
+
+### Test Patient Access
+GET {{baseUrl}}/auth/patient-test
+
+
+### ========================================
+### 4. USERS API
+### ========================================
+
+### Register a New User
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Alice Smith",
+  "email": "alice.smith@example.com",
+  "role": "Patient",
+  "photoURL": "https://example.com/photos/alice.jpg",
+  "bloodGroup": "O+",
+  "createdAt": "2026-06-29T10:00:00Z"
+}
+
+###
+
+### Get All Users
+GET {{baseUrl}}/users
+
+###
+
+### Get a Single User by Email
+GET {{baseUrl}}/users/alice.smith@example.com
+
+###
+
+### Update User Role
+PATCH {{baseUrl}}/users/alice.smith@example.com/role
+Content-Type: application/json
+
+{
+  "role": "Admin"
+}

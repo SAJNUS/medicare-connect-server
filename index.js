@@ -34,6 +34,29 @@ app.get('/', (req, res) => {
   });
 });
 
+// API Info Endpoint
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    success: true,
+    endpoints: {
+      health: "GET /health",
+      auth: {
+        jwt: "POST /auth/jwt",
+        logout: "POST /auth/logout",
+        adminTest: "GET /auth/admin-test",
+        doctorTest: "GET /auth/doctor-test",
+        patientTest: "GET /auth/patient-test"
+      },
+      users: {
+        create: "POST /users",
+        getAll: "GET /users",
+        getByEmail: "GET /users/:email",
+        updateRole: "PATCH /users/:email/role"
+      }
+    }
+  });
+});
+
 // Basic Health Check Endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
