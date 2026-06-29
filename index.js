@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { connectDB } from './utils/db.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import doctorRoutes from './routes/doctorRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -52,6 +53,12 @@ app.get('/api', (req, res) => {
         getAll: "GET /users",
         getByEmail: "GET /users/:email",
         updateRole: "PATCH /users/:email/role"
+      },
+      doctors: {
+        create: "POST /doctors",
+        getAll: "GET /doctors?search=&specialization=&sortBy=",
+        getById: "GET /doctors/:id",
+        updateVerification: "PATCH /doctors/:id/verification"
       }
     }
   });
@@ -68,6 +75,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use('/doctors', doctorRoutes);
 
 // Catch-all route for undefined API endpoints
 app.use((req, res) => {
