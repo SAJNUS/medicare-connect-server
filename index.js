@@ -9,6 +9,7 @@ import doctorRoutes from './routes/doctorRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -84,6 +85,13 @@ app.get('/api', (req, res) => {
         getById: "GET /prescriptions/:id",
         update: "PATCH /prescriptions/:id",
         delete: "DELETE /prescriptions/:id"
+      },
+      payments: {
+        create: "POST /payments",
+        getAll: "GET /payments?patientEmail=&doctorEmail=&appointmentId=",
+        getById: "GET /payments/:id",
+        updateStatus: "PATCH /payments/:id/status",
+        delete: "DELETE /payments/:id"
       }
     }
   });
@@ -104,6 +112,7 @@ app.use('/doctors', doctorRoutes);
 app.use('/appointments', appointmentRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/prescriptions', prescriptionRoutes);
+app.use('/payments', paymentRoutes);
 
 // Catch-all route for undefined API endpoints
 app.use((req, res) => {
