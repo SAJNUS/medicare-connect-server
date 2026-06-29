@@ -18,12 +18,14 @@ export const registerUser = async (req, res) => {
     }
 
     const result = await usersCollection.insertOne(user);
+    console.log(`[Users API] Successfully registered new user: ${user.email}`);
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: result
     });
   } catch (error) {
+    console.error(`[Users API] Error registering user:`, error);
     res.status(500).json({ 
       success: false, 
       message: 'Error registering user', 
@@ -51,6 +53,7 @@ export const getUserByEmail = async (req, res) => {
       data: user
     });
   } catch (error) {
+    console.error(`[Users API] Error fetching user by email:`, error);
     res.status(500).json({
       success: false,
       message: 'Error fetching user',
@@ -93,6 +96,7 @@ export const updateUserRole = async (req, res) => {
       data: result
     });
   } catch (error) {
+    console.error(`[Users API] Error updating user role:`, error);
     res.status(500).json({
       success: false,
       message: 'Error updating user role',
@@ -112,6 +116,7 @@ export const getAllUsers = async (req, res) => {
       data: users
     });
   } catch (error) {
+    console.error(`[Users API] Error fetching all users:`, error);
     res.status(500).json({
       success: false,
       message: 'Error fetching users',
