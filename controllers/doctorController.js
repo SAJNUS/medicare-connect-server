@@ -38,7 +38,7 @@ export const getAllDoctors = async (req, res) => {
   try {
     const { search, specialization, sortBy, page, limit } = req.query;
     
-    let query = {};
+    let query = { verificationStatus: 'verified' };
     
     // Combined name OR specialization search
     if (search) {

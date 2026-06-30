@@ -110,3 +110,144 @@ export const getDashboardStats = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all doctors for Admin Manage Doctors (merged users + doctors collections)
+// @route   GET /admin/doctors
+export const getAllDoctorsAdmin = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $match: { role: 'doctor' }
+      },
+      {
+        $lookup: {
+          from: 'doctors',
+          let: { userEmail: { $toLower: "$email" } },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toLower: "$email" }, "$$userEmail"] } } }
+          ],
+          as: 'profileData'
+        }
+      },
+      {
+        $unwind: {
+          path: "$profileData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: { $ifNull: ["$profileData.name", "$name"] },
+          email: 1,
+          specialty: { $ifNull: ["$profileData.specialty", { $ifNull: ["$profileData.specialization", "General"] }] },
+          designation: { $ifNull: ["$profileData.designation", "Consultant"] },
+          experience: { $ifNull: ["$profileData.experience", ""] },
+          qualifications: { $ifNull: ["$profileData.qualifications", ""] },
+          consultationFee: { $ifNull: ["$profileData.consultationFee", ""] },
+          licenseNumber: { $ifNull: ["$profileData.licenseNumber", "N/A"] },
+          verificationStatus: { $ifNull: ["$profileData.verificationStatus", "pending"] },
+          status: { $ifNull: ["$status", "Active"] },
+          createdAt: { $ifNull: ["$profileData.createdAt", "$createdAt"] },
+          avatar: { $ifNull: ["$profileData.image", "$photoURL"] },
+          doctorId: "$profileData._id"
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ];
+
+    const mergedDoctors = await usersCollection.aggregate(pipeline).toArray();
+
+    res.status(200).json({
+      success: true,
+      data: mergedDoctors
+    });
+
+  } catch (error) {
+    console.error(`[Admin API] Error fetching admin doctors:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching doctors',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Update doctor verification status (admin-only)
+// @route   PATCH /admin/doctors/:email/verification
+export const updateDoctorVerification = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { status } = req.body;
+
+    const allowedStatuses = ['pending', 'verified', 'rejected', 'removed'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Allowed values are: ${allowedStatuses.join(', ')}`
+      });
+    }
+
+    // Verify user exists
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') }, role: 'doctor' });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Doctor user not found' });
+    }
+
+    // Fetch existing doctor profile or create one
+    let doctorProfile = await doctorsCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    
+    if (!doctorProfile) {
+      // Create bare minimum profile
+      const newProfile = {
+        name: user.name,
+        email: user.email,
+        specialty: "General",
+        verificationStatus: status,
+        verifiedBy: req.user?.email || 'admin',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await doctorsCollection.insertOne(newProfile);
+    } else {
+      // Validate transitions if profile exists
+      const validTransitions = {
+        pending:  ['verified', 'rejected'],
+        verified: ['rejected', 'removed'],
+        rejected: ['pending', 'verified'],  // allow re-review
+        removed:  ['pending', 'verified']   // allow reinstatement
+      };
+
+      const allowed = validTransitions[doctorProfile.verificationStatus || 'pending'] || [];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot transition from '${doctorProfile.verificationStatus || 'pending'}' to '${status}'.`
+        });
+      }
+
+      await doctorsCollection.updateOne(
+        { email: { $regex: new RegExp(`^${email}$`, 'i') } },
+        { 
+          $set: { 
+            verificationStatus: status,
+            verifiedBy: req.user?.email || 'admin',
+            updatedAt: new Date().toISOString()
+          } 
+        }
+      );
+    }
+
+    res.status(200).json({ success: true, message: `Doctor status updated to ${status}` });
+
+  } catch (error) {
+    console.error(`[Admin API] Error updating doctor verification:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating verification status',
+      error: error.message
+    });
+  }
+};
