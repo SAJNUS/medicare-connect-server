@@ -119,11 +119,22 @@ app.post('/create-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Amount is required' });
     }
 
+    let finalAmount = parseInt(amount);
+    
+    // Enforce a minimum payable amount of ৳500
+    if (isNaN(finalAmount) || finalAmount < 500) {
+      finalAmount = 500;
+    }
+
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     // Create a PaymentIntent with the order amount and currency
+    // Stripe expects the amount in the smallest currency unit (poisha for BDT).
+    // 1 BDT = 100 poisha.
+    const stripeAmount = finalAmount * 100;
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(amount),
+      amount: stripeAmount,
       currency: "bdt",
     });
 

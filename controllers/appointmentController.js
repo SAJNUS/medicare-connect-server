@@ -128,7 +128,7 @@ export const updateAppointmentStatus = async (req, res) => {
 export const updatePaymentStatus = async (req, res) => {
   try {
     const id = req.params.id;
-    const { paymentStatus } = req.body;
+    const { paymentStatus, transactionId } = req.body;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, message: 'Invalid appointment ID format' });
@@ -142,9 +142,14 @@ export const updatePaymentStatus = async (req, res) => {
       });
     }
 
+    const updateDoc = { $set: { paymentStatus } };
+    if (transactionId) {
+      updateDoc.$set.transactionId = transactionId;
+    }
+
     const result = await appointmentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { paymentStatus } }
+      updateDoc
     );
 
     if (result.matchedCount === 0) {
