@@ -106,9 +106,32 @@ export const updateAppointmentStatus = async (req, res) => {
       });
     }
 
+    // Fetch current appointment to validate transition
+    const existing = await appointmentsCollection.findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    // Enforce valid state transitions
+    const validTransitions = {
+      pending:   ['approved', 'rejected', 'cancelled'],
+      approved:  ['completed', 'cancelled'],
+      rejected:  [],   // terminal
+      cancelled: [],   // terminal
+      completed: []    // terminal
+    };
+
+    const allowed = validTransitions[existing.appointmentStatus] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot transition from '${existing.appointmentStatus}' to '${status}'.`
+      });
+    }
+
     const result = await appointmentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { appointmentStatus: status } }
+      { $set: { appointmentStatus: status, updatedAt: new Date().toISOString() } }
     );
 
     if (result.matchedCount === 0) {
