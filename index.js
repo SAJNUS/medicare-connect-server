@@ -10,6 +10,7 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import Stripe from 'stripe';
 
 // Load environment variables
 dotenv.config();
@@ -107,6 +108,32 @@ app.get('/health', (req, res) => {
     success: true,
     message: "Server is running"
   });
+});
+
+// Stripe Payment Intent Endpoint
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    // Create a PaymentIntent with the order amount and currency
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: parseInt(amount),
+      currency: "bdt",
+    });
+
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    console.error("Stripe payment intent error:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // API Routes
