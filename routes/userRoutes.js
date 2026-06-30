@@ -4,7 +4,9 @@ import {
   getUserByEmail, 
   updateUserRole, 
   getAllUsers,
-  updateUserName
+  updateUserName,
+  updateUserStatus,
+  deleteUser
 } from '../controllers/userController.js';
 import { verifyToken, verifyAdmin } from '../middlewares/authMiddleware.js';
 
@@ -27,5 +29,13 @@ router.route('/:email/role')
 // Updating a user's name (authenticated user)
 router.route('/:email/name')
   .patch(verifyToken, updateUserName);
+
+// Suspend or unsuspend user (admin only)
+router.route('/:email/status')
+  .patch(verifyToken, verifyAdmin, updateUserStatus);
+
+// Delete user (admin only)
+router.route('/:email')
+  .delete(verifyToken, verifyAdmin, deleteUser);
 
 export default router;

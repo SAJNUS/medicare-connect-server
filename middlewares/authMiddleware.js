@@ -28,9 +28,9 @@ export const verifyToken = (req, res, next) => {
 export const verifyAdmin = async (req, res, next) => {
   try {
     const email = req.user?.email;
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || user.role !== 'Admin') {
+    if (!user || !user.role || user.role.toLowerCase() !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Admin access required'
@@ -47,9 +47,9 @@ export const verifyAdmin = async (req, res, next) => {
 export const verifyDoctor = async (req, res, next) => {
   try {
     const email = req.user?.email;
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || user.role !== 'Doctor') {
+    if (!user || !user.role || user.role.toLowerCase() !== 'doctor') {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Doctor access required'
@@ -66,9 +66,9 @@ export const verifyDoctor = async (req, res, next) => {
 export const verifyPatient = async (req, res, next) => {
   try {
     const email = req.user?.email;
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || user.role !== 'Patient') {
+    if (!user || !user.role || user.role.toLowerCase() !== 'patient') {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Patient access required'
@@ -85,9 +85,9 @@ export const verifyPatient = async (req, res, next) => {
 export const verifyDoctorOrAdmin = async (req, res, next) => {
   try {
     const email = req.user?.email;
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || (user.role !== 'Doctor' && user.role !== 'Admin')) {
+    if (!user || (!user.role || (user.role.toLowerCase() !== 'doctor' && user.role.toLowerCase() !== 'admin'))) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Doctor or Admin access required'

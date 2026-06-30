@@ -50,6 +50,30 @@ export const connectDB = async () => {
     schedulesCollection = db.collection('schedules');
     favoritesCollection = db.collection('favorites');
 
+    // Seed default admin user
+    const adminEmail = "medicare@gmail.com";
+    const existingAdmin = await usersCollection.findOne({ email: adminEmail });
+    if (!existingAdmin) {
+      await usersCollection.insertOne({
+        name: "Admin System",
+        email: adminEmail,
+        role: "admin",
+        status: "Active",
+        passwordHash: "FirebaseManaged", // Placeholder since Firebase handles auth
+        createdAt: new Date().toISOString()
+      });
+      console.log(`[Seed] Default admin account seeded: ${adminEmail}`);
+    } else {
+      // Ensure existing admin has the correct role and status
+      if (existingAdmin.role !== 'admin' || existingAdmin.status !== 'Active') {
+        await usersCollection.updateOne(
+          { email: adminEmail },
+          { $set: { role: 'admin', status: 'Active' } }
+        );
+        console.log(`[Seed] Default admin account role/status synchronized.`);
+      }
+    }
+
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error);
     process.exit(1); // Exit process with failure

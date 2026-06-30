@@ -6,8 +6,8 @@ export const registerUser = async (req, res) => {
   try {
     const user = req.body;
     
-    // Prevent duplicate user creation
-    const query = { email: user.email };
+    // Prevent duplicate user creation (case-insensitive)
+    const query = { email: { $regex: new RegExp(`^${user.email}$`, 'i') } };
     const existingUser = await usersCollection.findOne(query);
     
     if (existingUser) {
@@ -17,6 +17,9 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    if (!user.createdAt) {
+      user.createdAt = new Date().toISOString();
+    }
     const result = await usersCollection.insertOne(user);
     console.log(`[Users API] Successfully registered new user: ${user.email}`);
     res.status(201).json({
@@ -39,7 +42,7 @@ export const registerUser = async (req, res) => {
 export const getUserByEmail = async (req, res) => {
   try {
     const email = req.params.email;
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
     
     if (!user) {
       return res.status(404).json({
@@ -146,5 +149,55 @@ export const updateUserName = async (req, res) => {
   } catch (error) {
     console.error(`[Users API] Error updating user name:`, error);
     res.status(500).json({ success: false, message: 'Error updating user name' });
+  }
+};
+
+// @desc    Update user status (Suspend/Unsuspend)
+// @route   PATCH /users/:email/status
+export const updateUserStatus = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { status } = req.body;
+
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.role && user.role.toLowerCase() === 'admin') {
+      return res.status(403).json({ success: false, message: 'Cannot suspend an admin account' });
+    }
+
+    await usersCollection.updateOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } }, { $set: { status } });
+    
+    res.status(200).json({ success: true, message: 'User status updated successfully' });
+  } catch (error) {
+    console.error(`[Users API] Error updating user status:`, error);
+    res.status(500).json({ success: false, message: 'Error updating user status' });
+  }
+};
+
+// @desc    Delete user
+// @route   DELETE /users/:email
+export const deleteUser = async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    // Prevent deleting admin
+    const targetUser = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (targetUser.role && targetUser.role.toLowerCase() === 'admin') {
+      return res.status(403).json({ success: false, message: 'Cannot delete an admin account' });
+    }
+
+    await usersCollection.deleteOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    
+    res.status(200).json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error(`[Users API] Error deleting user:`, error);
+    res.status(500).json({ success: false, message: 'Error deleting user' });
   }
 };
