@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-import { connectDB } from './utils/db.js';
+import { connectDB, appointmentsCollection, paymentsCollection } from './utils/db.js';
+import { ObjectId } from 'mongodb';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
@@ -11,6 +12,7 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import Stripe from 'stripe';
+import PDFDocument from 'pdfkit';
 
 // Load environment variables
 dotenv.config();
@@ -113,10 +115,23 @@ app.get('/health', (req, res) => {
 // Stripe Payment Intent Endpoint
 app.post('/create-payment-intent', async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, appointmentId } = req.body;
     
     if (!amount) {
       return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    if (!appointmentId) {
+      return res.status(400).json({ error: 'appointmentId is required' });
+    }
+
+    const apt = await appointmentsCollection.findOne({ _id: new ObjectId(appointmentId) });
+    if (!apt) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (apt.paymentStatus === 'paid') {
+      return res.status(400).json({ error: 'This appointment has already been paid for.' });
     }
 
     let finalAmount = parseInt(amount);
@@ -144,6 +159,77 @@ app.post('/create-payment-intent', async (req, res) => {
   } catch (error) {
     console.error("Stripe payment intent error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// PDF Receipt Generation Endpoint
+app.get('/payments/:friendlyTxnId/receipt', async (req, res) => {
+  try {
+    const { friendlyTxnId } = req.params;
+    
+    const payment = await paymentsCollection.findOne({ 
+      $or: [
+        { friendlyTxnId },
+        { transactionId: friendlyTxnId }
+      ]
+    });
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    const displayTxnId = payment.friendlyTxnId || payment.transactionId;
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Receipt-${displayTxnId}.pdf`);
+
+    const doc = new PDFDocument({ margin: 50 });
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(22).fillColor('#0b6e66').text("MediCare Connect", { align: 'left' });
+    doc.fontSize(10).fillColor('#646464').text("Official Payment Receipt", { align: 'left' });
+    doc.moveDown(0.5);
+    
+    // Line separator
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#c8c8c8').stroke();
+    doc.moveDown();
+
+    // IDs
+    doc.fontSize(12).fillColor('#000000').text(`Transaction ID: ${displayTxnId}`);
+    doc.fontSize(8).fillColor('#969696').text(`Stripe ID: ${payment.transactionId}`);
+    doc.moveDown(1.5);
+
+    // Details
+    doc.fontSize(12).fillColor('#000000');
+    doc.text(`Patient Email: ${payment.patientEmail}`);
+    doc.moveDown(0.5);
+    doc.text(`Doctor: ${payment.doctorName || 'Doctor'}`);
+    doc.moveDown(0.5);
+    doc.text(`Consultation Type: ${payment.type || 'Consultation'}`);
+    doc.moveDown(0.5);
+    
+    const formattedDate = new Date(payment.paymentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formattedTime = new Date(payment.paymentDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    doc.text(`Date & Time: ${formattedDate} at ${formattedTime}`);
+    
+    doc.moveDown(0.5);
+    doc.text(`Amount Paid: ৳${parseFloat(payment.amount).toFixed(2)}`);
+    doc.moveDown(0.5);
+    doc.text(`Payment Status: Completed`);
+    doc.moveDown(1.5);
+
+    // Footer line
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#c8c8c8').stroke();
+    doc.moveDown();
+
+    // Footer text
+    doc.fontSize(10).fillColor('#969696').text("Paid via Stripe (Test Mode)", { align: 'left' });
+
+    doc.end();
+  } catch (error) {
+    console.error("Receipt generation error:", error);
+    res.status(500).json({ error: 'Failed to generate receipt' });
   }
 });
 

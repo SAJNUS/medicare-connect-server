@@ -7,9 +7,33 @@ export const createPayment = async (req, res) => {
   try {
     const paymentData = req.body;
     
+    if (!paymentData.appointmentId) {
+      return res.status(400).json({ success: false, message: 'appointmentId is required' });
+    }
+
+    // Check for duplicate payment
+    const existingPayment = await paymentsCollection.findOne({ appointmentId: paymentData.appointmentId });
+    if (existingPayment) {
+      return res.status(409).json({ success: false, message: 'Payment for this appointment already exists' });
+    }
+
+    // Generate Friendly Transaction ID
+    const getFriendlyId = (idStr) => {
+      let hash = 0;
+      for (let i = 0; i < idStr.length; i++) {
+        hash = (hash << 5) - hash + idStr.charCodeAt(i);
+        hash |= 0;
+      }
+      const num = Math.abs(hash) % 10000;
+      return `TXN-2026-${num.toString().padStart(4, '0')}`;
+    };
+
+    const friendlyTxnId = getFriendlyId(paymentData.transactionId || new Date().getTime().toString());
+
     // Auto-set paymentDate
     const newPayment = {
       ...paymentData,
+      friendlyTxnId,
       paymentDate: new Date().toISOString()
     };
 
