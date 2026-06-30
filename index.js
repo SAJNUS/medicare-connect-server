@@ -218,7 +218,8 @@ app.get('/payments/:friendlyTxnId/receipt', verifyToken, async (req, res) => {
     doc.text(`Date & Time: ${formattedDate} at ${formattedTime}`);
     
     doc.moveDown(0.5);
-    doc.text(`Amount Paid: ৳${parseFloat(payment.amount).toFixed(2)}`);
+    const formattedAmount = Number.isInteger(parseFloat(payment.amount)) ? parseInt(payment.amount) : parseFloat(payment.amount).toFixed(2);
+    doc.text(`Amount Paid: BDT ${formattedAmount}`);
     doc.moveDown(0.5);
     doc.text(`Payment Status: Completed`);
     doc.moveDown(1.5);

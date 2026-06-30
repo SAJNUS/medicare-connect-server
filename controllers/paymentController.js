@@ -19,7 +19,7 @@ export const createPayment = async (req, res) => {
 
     // Generate Sequential Transaction ID
     const count = await paymentsCollection.countDocuments();
-    const displayTransactionId = `TXN-${(count + 1).toString().padStart(6, '0')}`;
+    const displayTransactionId = `TXN-2026-${(count + 1).toString().padStart(4, '0')}`;
 
     // Generate Friendly Transaction ID (legacy)
     const getFriendlyId = (idStr) => {
