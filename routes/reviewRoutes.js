@@ -6,16 +6,20 @@ import {
   updateReview,
   deleteReview
 } from '../controllers/reviewController.js';
+import { verifyToken, verifyAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
+// Public: any visitor can read all reviews (needed for doctor pages)
+// Auth required only for writing
 router.route('/')
-  .post(createReview)
+  .post(verifyToken, createReview)
   .get(getAllReviews);
 
+// Reading by ID is public; editing requires auth; deleting is admin-only
 router.route('/:id')
   .get(getReviewById)
-  .patch(updateReview)
-  .delete(deleteReview);
+  .patch(verifyToken, updateReview)
+  .delete(verifyToken, verifyAdmin, deleteReview);
 
 export default router;

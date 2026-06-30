@@ -13,6 +13,7 @@ import prescriptionRoutes from './routes/prescriptionRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import Stripe from 'stripe';
 import PDFDocument from 'pdfkit';
+import { verifyToken } from './middlewares/authMiddleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -112,8 +113,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Stripe Payment Intent Endpoint
-app.post('/create-payment-intent', async (req, res) => {
+// Stripe Payment Intent Endpoint — requires valid JWT
+app.post('/create-payment-intent', verifyToken, async (req, res) => {
   try {
     const { amount, appointmentId } = req.body;
     
@@ -162,8 +163,8 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-// PDF Receipt Generation Endpoint
-app.get('/payments/:friendlyTxnId/receipt', async (req, res) => {
+// PDF Receipt Generation Endpoint — requires valid JWT
+app.get('/payments/:friendlyTxnId/receipt', verifyToken, async (req, res) => {
   try {
     const { friendlyTxnId } = req.params;
     

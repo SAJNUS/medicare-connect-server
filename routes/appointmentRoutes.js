@@ -7,21 +7,25 @@ import {
   updatePaymentStatus,
   deleteAppointment
 } from '../controllers/appointmentController.js';
+import { verifyToken, verifyDoctorOrAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
+// All appointment routes require a valid JWT
 router.route('/')
-  .post(createAppointment)
-  .get(getAllAppointments);
+  .post(verifyToken, createAppointment)
+  .get(verifyToken, getAllAppointments);
 
 router.route('/:id')
-  .get(getAppointmentById)
-  .delete(deleteAppointment);
+  .get(verifyToken, getAppointmentById)
+  .delete(verifyToken, deleteAppointment);
 
+// Only doctors or admins can change appointment status
 router.route('/:id/status')
-  .patch(updateAppointmentStatus);
+  .patch(verifyToken, verifyDoctorOrAdmin, updateAppointmentStatus);
 
+// Payment status update requires auth (triggered after Stripe confirms)
 router.route('/:id/payment')
-  .patch(updatePaymentStatus);
+  .patch(verifyToken, updatePaymentStatus);
 
 export default router;

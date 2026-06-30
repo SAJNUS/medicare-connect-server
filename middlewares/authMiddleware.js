@@ -80,3 +80,22 @@ export const verifyPatient = async (req, res, next) => {
     return res.status(500).json({ success: false, message: 'Server error during authorization' });
   }
 };
+
+// @desc    Verify Doctor OR Admin Role (for appointment status updates, viewing etc.)
+export const verifyDoctorOrAdmin = async (req, res, next) => {
+  try {
+    const email = req.user?.email;
+    const user = await usersCollection.findOne({ email });
+
+    if (!user || (user.role !== 'Doctor' && user.role !== 'Admin')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: Doctor or Admin access required'
+      });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error during authorization' });
+  }
+};
