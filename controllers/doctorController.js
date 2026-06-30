@@ -196,3 +196,56 @@ export const updateVerificationStatus = async (req, res) => {
     });
   }
 };
+
+// @desc    Update doctor profile (logged in doctor updates their own profile)
+// @route   PATCH /doctors/profile/update
+export const updateDoctorProfile = async (req, res) => {
+  try {
+    const email = req.user.email;
+    const updateData = req.body;
+    
+    // UPSERT operation based on email
+    const filter = { email: email };
+    const updateDoc = {
+      $set: {
+        ...updateData,
+        email: email, // ensure email is set if inserting
+        updatedAt: new Date().toISOString()
+      }
+    };
+    
+    const result = await doctorsCollection.updateOne(filter, updateDoc, { upsert: true });
+    console.log(`[Doctors API] Doctor ${email} updated their profile`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Doctor profile updated successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error(`[Doctors API] Error updating doctor profile:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating doctor profile',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get logged in doctor profile
+// @route   GET /doctors/profile/me
+export const getDoctorProfile = async (req, res) => {
+  try {
+    const email = req.user.email;
+    const doctor = await doctorsCollection.findOne({ email });
+    
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+    }
+
+    res.status(200).json({ success: true, data: doctor });
+  } catch (error) {
+    console.error(`[Doctors API] Error fetching doctor profile:`, error);
+    res.status(500).json({ success: false, message: 'Error fetching profile', error: error.message });
+  }
+};

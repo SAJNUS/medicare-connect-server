@@ -3,7 +3,8 @@ import {
   registerUser, 
   getUserByEmail, 
   updateUserRole, 
-  getAllUsers 
+  getAllUsers,
+  updateUserName
 } from '../controllers/userController.js';
 import { verifyToken, verifyAdmin } from '../middlewares/authMiddleware.js';
 
@@ -22,5 +23,9 @@ router.route('/:email')
 // Changing a user's role is strictly admin-only
 router.route('/:email/role')
   .patch(verifyToken, verifyAdmin, updateUserRole);
+
+// Updating a user's name (authenticated user)
+router.route('/:email/name')
+  .patch(verifyToken, updateUserName);
 
 export default router;

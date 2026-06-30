@@ -3,9 +3,11 @@ import {
   createDoctor, 
   getAllDoctors, 
   getDoctorById, 
-  updateVerificationStatus 
+  updateVerificationStatus,
+  updateDoctorProfile,
+  getDoctorProfile
 } from '../controllers/doctorController.js';
-import { verifyToken, verifyAdmin } from '../middlewares/authMiddleware.js';
+import { verifyToken, verifyAdmin, verifyDoctor } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -14,6 +16,14 @@ const router = express.Router();
 router.route('/')
   .post(verifyToken, verifyAdmin, createDoctor)
   .get(getAllDoctors);
+
+// Doctor updating their own profile
+router.route('/profile/update')
+  .patch(verifyToken, verifyDoctor, updateDoctorProfile);
+
+// Doctor fetching their own profile
+router.route('/profile/me')
+  .get(verifyToken, verifyDoctor, getDoctorProfile);
 
 // Public: viewing an individual doctor's profile is public
 router.route('/:id')

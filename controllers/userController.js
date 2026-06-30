@@ -124,3 +124,27 @@ export const getAllUsers = async (req, res) => {
     });
   }
 };
+
+// @desc    Update user name
+// @route   PATCH /users/:email/name
+export const updateUserName = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
+
+    const result = await usersCollection.updateOne({ email }, { $set: { name } });
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'User name updated successfully' });
+  } catch (error) {
+    console.error(`[Users API] Error updating user name:`, error);
+    res.status(500).json({ success: false, message: 'Error updating user name' });
+  }
+};
