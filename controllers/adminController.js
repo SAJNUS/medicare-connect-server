@@ -1,4 +1,4 @@
-import { usersCollection, doctorsCollection, appointmentsCollection, reviewsCollection } from '../utils/db.js';
+import { usersCollection, doctorsCollection, appointmentsCollection, reviewsCollection, paymentsCollection } from '../utils/db.js';
 
 // @desc    Get comprehensive dashboard statistics
 // @route   GET /admin/stats
@@ -247,6 +247,73 @@ export const updateDoctorVerification = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating verification status',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get all payments for Admin Manage Payments
+// @route   GET /admin/payments
+export const getAllPaymentsAdmin = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'users',
+          let: { patientEmail: { $toLower: "$patientEmail" } },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toLower: "$email" }, "$$patientEmail"] } } }
+          ],
+          as: 'patientData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: { doctorEmail: { $toLower: "$doctorEmail" } },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toLower: "$email" }, "$$doctorEmail"] } } }
+          ],
+          as: 'doctorData'
+        }
+      },
+      {
+        $unwind: { path: "$patientData", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: "$doctorData", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          _id: 1,
+          id: { $ifNull: ["$displayTransactionId", "$friendlyTxnId"] },
+          patientName: { $ifNull: ["$patientData.name", "Unknown Patient"] },
+          doctorName: { $ifNull: ["$doctorData.name", "Unknown Doctor"] },
+          amount: { $ifNull: ["$amount", 0] },
+          method: { $ifNull: ["$paymentMethod", "Unknown"] },
+          cardType: { $ifNull: ["$cardType", "other"] },
+          date: { $ifNull: ["$paymentDate", "$createdAt"] },
+          status: { $ifNull: ["$status", "Pending"] },
+          avatar: { $ifNull: ["$patientData.photoURL", ""] }
+        }
+      },
+      {
+        $sort: { date: -1 }
+      }
+    ];
+
+    const payments = await paymentsCollection.aggregate(pipeline).toArray();
+
+    res.status(200).json({
+      success: true,
+      data: payments
+    });
+
+  } catch (error) {
+    console.error(`[Admin API] Error fetching admin payments:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching payments',
       error: error.message
     });
   }

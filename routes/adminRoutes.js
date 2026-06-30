@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDashboardStats, getAllDoctorsAdmin, updateDoctorVerification } from '../controllers/adminController.js';
+import { getDashboardStats, getAllDoctorsAdmin, updateDoctorVerification, getAllPaymentsAdmin } from '../controllers/adminController.js';
 import { verifyToken, verifyAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -15,5 +15,9 @@ router.route('/doctors')
 // Admin Update Doctor Verification Status
 router.route('/doctors/:email/verification')
   .patch(verifyToken, verifyAdmin, updateDoctorVerification);
+
+// Admin Manage Payments list
+router.route('/payments')
+  .get(verifyToken, verifyAdmin, getAllPaymentsAdmin);
 
 export default router;
