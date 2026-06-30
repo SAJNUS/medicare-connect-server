@@ -172,6 +172,7 @@ app.get('/payments/:friendlyTxnId/receipt', verifyToken, async (req, res) => {
     
     const payment = await paymentsCollection.findOne({ 
       $or: [
+        { displayTransactionId: friendlyTxnId },
         { friendlyTxnId },
         { transactionId: friendlyTxnId }
       ]
@@ -180,7 +181,7 @@ app.get('/payments/:friendlyTxnId/receipt', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    const displayTxnId = payment.friendlyTxnId || payment.transactionId;
+    const displayTxnId = payment.displayTransactionId || payment.friendlyTxnId || payment.transactionId;
 
     // Set headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');

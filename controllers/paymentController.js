@@ -17,7 +17,11 @@ export const createPayment = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Payment for this appointment already exists' });
     }
 
-    // Generate Friendly Transaction ID
+    // Generate Sequential Transaction ID
+    const count = await paymentsCollection.countDocuments();
+    const displayTransactionId = `TXN-${(count + 1).toString().padStart(6, '0')}`;
+
+    // Generate Friendly Transaction ID (legacy)
     const getFriendlyId = (idStr) => {
       let hash = 0;
       for (let i = 0; i < idStr.length; i++) {
@@ -34,6 +38,7 @@ export const createPayment = async (req, res) => {
     const newPayment = {
       ...paymentData,
       friendlyTxnId,
+      displayTransactionId,
       paymentDate: new Date().toISOString()
     };
 

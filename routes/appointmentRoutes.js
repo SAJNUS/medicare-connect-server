@@ -5,7 +5,8 @@ import {
   getAppointmentById, 
   updateAppointmentStatus,
   updatePaymentStatus,
-  deleteAppointment
+  deleteAppointment,
+  rescheduleAppointment
 } from '../controllers/appointmentController.js';
 import { verifyToken, verifyDoctorOrAdmin } from '../middlewares/authMiddleware.js';
 
@@ -23,6 +24,9 @@ router.route('/:id')
 // Only doctors or admins can change appointment status
 router.route('/:id/status')
   .patch(verifyToken, verifyDoctorOrAdmin, updateAppointmentStatus);
+
+router.route('/:id/reschedule')
+  .patch(verifyToken, rescheduleAppointment);
 
 // Payment status update requires auth (triggered after Stripe confirms)
 router.route('/:id/payment')

@@ -16,10 +16,10 @@ router.route('/')
   .post(verifyToken, createReview)
   .get(getAllReviews);
 
-// Reading by ID is public; editing requires auth; deleting is admin-only
+// Reading by ID is public; editing requires auth; deleting requires auth
 router.route('/:id')
   .get(getReviewById)
   .patch(verifyToken, updateReview)
-  .delete(verifyToken, verifyAdmin, deleteReview);
+  .delete(verifyToken, deleteReview);
 
 export default router;

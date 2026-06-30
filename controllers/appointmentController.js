@@ -142,7 +142,35 @@ export const updateAppointmentStatus = async (req, res) => {
     res.status(200).json({ success: true, message: 'Appointment status updated successfully', data: result });
   } catch (error) {
     console.error(`[Appointments API] Error updating appointment status:`, error);
-    res.status(500).json({ success: false, message: 'Error updating status', error: error.message });
+    res.status(500).json({ success: false, message: 'Error updating appointment status', error: error.message });
+  }
+};
+
+// @desc    Reschedule appointment
+// @route   PATCH /appointments/:id/reschedule
+export const rescheduleAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { date, time } = req.body;
+
+    if (!date || !time) {
+      return res.status(400).json({ success: false, message: 'Date and time are required to reschedule' });
+    }
+
+    const result = await appointmentsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { date, time, updatedAt: new Date().toISOString() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    console.log(`[Appointments API] Rescheduled appointment ${id} to ${date} at ${time}`);
+    res.status(200).json({ success: true, message: 'Appointment rescheduled successfully', data: result });
+  } catch (error) {
+    console.error(`[Appointments API] Error rescheduling appointment:`, error);
+    res.status(500).json({ success: false, message: 'Error rescheduling appointment', error: error.message });
   }
 };
 
