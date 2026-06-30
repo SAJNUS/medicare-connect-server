@@ -11,6 +11,7 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 import Stripe from 'stripe';
 import PDFDocument from 'pdfkit';
 import { verifyToken } from './middlewares/authMiddleware.js';
@@ -242,6 +243,7 @@ app.use('/appointments', appointmentRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/prescriptions', prescriptionRoutes);
 app.use('/payments', paymentRoutes);
+app.use('/schedules', scheduleRoutes);
 
 // Catch-all route for undefined API endpoints
 app.use((req, res) => {

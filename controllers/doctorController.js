@@ -32,39 +32,51 @@ export const createDoctor = async (req, res) => {
   }
 };
 
-// @desc    Get all doctors with filtering and sorting
+// @desc    Get all doctors with filtering, sorting, and pagination
 // @route   GET /doctors
 export const getAllDoctors = async (req, res) => {
   try {
-    const { search, specialization, sortBy } = req.query;
+    const { search, specialization, sortBy, page, limit } = req.query;
     
     let query = {};
     
-    // Name search regex
+    // Combined name OR specialization search
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { specialization: { $regex: search, $options: 'i' } }
+      ];
     }
     
-    // Exact match for specialization
-    if (specialization) {
-      query.specialization = specialization;
+    // Exact match for specialization filter (separate from search)
+    if (specialization && specialization !== 'All') {
+      query.specialization = { $regex: `^${specialization}$`, $options: 'i' };
     }
 
     // Determine sorting options
-    let sortOptions = {};
+    let sortOptions = { createdAt: -1 }; // default: newest first
     if (sortBy === 'fee') {
-      sortOptions.consultationFee = 1; // Lowest fee first
+      sortOptions = { consultationFee: 1 };
     } else if (sortBy === 'experience') {
-      sortOptions.experience = -1; // Highest experience first
+      sortOptions = { experience: -1 };
     } else if (sortBy === 'rating') {
-      sortOptions.rating = -1; // Highest rating first
+      sortOptions = { rating: -1 };
     }
 
-    const doctors = await doctorsCollection.find(query).sort(sortOptions).toArray();
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalCount = await doctorsCollection.countDocuments(query);
+    const doctors = await doctorsCollection.find(query).sort(sortOptions).skip(skip).limit(limitNum).toArray();
     
     res.status(200).json({
       success: true,
       count: doctors.length,
+      total: totalCount,
+      page: pageNum,
+      totalPages: Math.ceil(totalCount / limitNum),
       data: doctors
     });
   } catch (error) {
@@ -113,7 +125,7 @@ export const getDoctorById = async (req, res) => {
   }
 };
 
-// @desc    Update doctor verification status
+// @desc    Update doctor verification status (admin-only)
 // @route   PATCH /doctors/:id/verification
 export const updateVerificationStatus = async (req, res) => {
   try {
@@ -127,8 +139,8 @@ export const updateVerificationStatus = async (req, res) => {
       });
     }
 
-    // Validate allowed status values
-    const allowedStatuses = ['pending', 'verified', 'rejected'];
+    // 'removed' handles the "Verification Removed" workflow
+    const allowedStatuses = ['pending', 'verified', 'rejected', 'removed'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -136,21 +148,39 @@ export const updateVerificationStatus = async (req, res) => {
       });
     }
 
-    const filter = { _id: new ObjectId(id) };
-    const updateDoc = {
-      $set: { verificationStatus: status }
+    // Fetch existing doctor to validate transition
+    const existing = await doctorsCollection.findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    // Valid state machine transitions
+    const validTransitions = {
+      pending:  ['verified', 'rejected'],
+      verified: ['rejected', 'removed'],
+      rejected: ['pending', 'verified'],  // allow re-review
+      removed:  ['pending', 'verified']   // allow reinstatement
     };
 
-    const result = await doctorsCollection.updateOne(filter, updateDoc);
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({
+    const allowed = validTransitions[existing.verificationStatus] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
         success: false,
-        message: 'Doctor not found'
+        message: `Cannot transition from '${existing.verificationStatus}' to '${status}'.`
       });
     }
 
-    console.log(`[Doctors API] Updated verification status for doctor ${id} to ${status}`);
+    const updateDoc = {
+      $set: {
+        verificationStatus: status,
+        verifiedBy: req.user?.email || 'admin',
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    const result = await doctorsCollection.updateOne({ _id: new ObjectId(id) }, updateDoc);
+
+    console.log(`[Doctors API] Admin ${req.user?.email} changed doctor ${id} status: ${existing.verificationStatus} → ${status}`);
     
     res.status(200).json({
       success: true,
