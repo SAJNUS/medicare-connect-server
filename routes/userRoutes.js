@@ -15,9 +15,9 @@ router.route('/')
   .post(registerUser)
   .get(verifyToken, verifyAdmin, getAllUsers);
 
-// GET /users/:email requires auth (users can only see their own profile in practice)
+// GET /users/:email (public because it's required during the Google Login flow before JWT is issued)
 router.route('/:email')
-  .get(verifyToken, getUserByEmail);
+  .get(getUserByEmail);
 
 // Changing a user's role is strictly admin-only
 router.route('/:email/role')

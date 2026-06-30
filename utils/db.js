@@ -29,6 +29,7 @@ export let reviewsCollection;
 export let paymentsCollection;
 export let prescriptionsCollection;
 export let schedulesCollection;
+export let favoritesCollection;
 
 export const connectDB = async () => {
   try {
@@ -47,6 +48,7 @@ export const connectDB = async () => {
     paymentsCollection = db.collection('payments');
     prescriptionsCollection = db.collection('prescriptions');
     schedulesCollection = db.collection('schedules');
+    favoritesCollection = db.collection('favorites');
 
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error);
