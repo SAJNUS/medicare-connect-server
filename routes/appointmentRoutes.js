@@ -21,9 +21,9 @@ router.route('/:id')
   .get(verifyToken, getAppointmentById)
   .delete(verifyToken, deleteAppointment);
 
-// Only doctors or admins can change appointment status
+// Any user can change status, but controller enforces roles (patients can only cancel)
 router.route('/:id/status')
-  .patch(verifyToken, verifyDoctorOrAdmin, updateAppointmentStatus);
+  .patch(verifyToken, updateAppointmentStatus);
 
 router.route('/:id/reschedule')
   .patch(verifyToken, rescheduleAppointment);

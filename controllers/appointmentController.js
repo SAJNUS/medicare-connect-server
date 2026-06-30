@@ -112,6 +112,16 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Appointment not found' });
     }
 
+    // Role-based restrictions
+    if (req.user && req.user.role === 'patient') {
+      if (status !== 'cancelled') {
+        return res.status(403).json({ success: false, message: 'Patients can only cancel appointments.' });
+      }
+      if (existing.patientEmail !== req.user.email) {
+        return res.status(403).json({ success: false, message: 'Not authorized to modify this appointment' });
+      }
+    }
+
     // Enforce valid state transitions
     const validTransitions = {
       pending:   ['approved', 'rejected', 'cancelled'],
