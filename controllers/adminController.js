@@ -117,7 +117,7 @@ export const getAllDoctorsAdmin = async (req, res) => {
   try {
     const pipeline = [
       {
-        $match: { role: 'doctor' }
+        $match: { role: { $in: ['doctor', 'developer'] } }
       },
       {
         $lookup: {
@@ -191,7 +191,7 @@ export const updateDoctorVerification = async (req, res) => {
     }
 
     // Verify user exists
-    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') }, role: 'doctor' });
+    const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') }, role: { $in: ['doctor', 'developer'] } });
     if (!user) {
       return res.status(404).json({ success: false, message: 'Doctor user not found' });
     }
