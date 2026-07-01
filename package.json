@@ -8,7 +8,10 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:payments": "node testPayments.js"
+    "test:payments": "node testPayments.js",
+    "reset:demo": "node scripts/resetDemoData.js",
+    "generate:doctor-images": "node scripts/generateDoctorImages.js",
+    "seed:doctors": "node scripts/seedDoctors.js"
   },
   "repository": {
     "type": "git",
