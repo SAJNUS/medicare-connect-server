@@ -30,7 +30,11 @@ export const verifyAdmin = async (req, res, next) => {
     const email = req.user?.email;
     const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || !user.role || user.role.toLowerCase() !== 'admin') {
+    if (!user || !user.role) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    const userRole = user.role.toLowerCase();
+    if (userRole !== 'admin' && userRole !== 'developer') {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Admin access required'
@@ -49,7 +53,11 @@ export const verifyDoctor = async (req, res, next) => {
     const email = req.user?.email;
     const user = await usersCollection.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || !user.role || user.role.toLowerCase() !== 'doctor') {
+    if (!user || !user.role) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    const userRole = user.role.toLowerCase();
+    if (userRole !== 'doctor' && userRole !== 'developer') {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: Doctor access required'

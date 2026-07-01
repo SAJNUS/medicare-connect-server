@@ -74,6 +74,29 @@ export const connectDB = async () => {
       }
     }
 
+    // Seed developer account
+    const devEmail = "sajnussaharearhojayfa@gmail.com";
+    const existingDev = await usersCollection.findOne({ email: devEmail });
+    if (!existingDev) {
+      await usersCollection.insertOne({
+        name: "Developer",
+        email: devEmail,
+        role: "developer",
+        status: "Active",
+        passwordHash: "FirebaseManaged",
+        createdAt: new Date().toISOString()
+      });
+      console.log(`[Seed] Developer account seeded: ${devEmail}`);
+    } else {
+      if (existingDev.role !== 'developer') {
+        await usersCollection.updateOne(
+          { email: devEmail },
+          { $set: { role: 'developer' } }
+        );
+        console.log(`[Seed] Developer account role synchronized.`);
+      }
+    }
+
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error);
     process.exit(1); // Exit process with failure

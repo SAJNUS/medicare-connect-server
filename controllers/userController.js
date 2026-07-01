@@ -79,6 +79,14 @@ export const updateUserRole = async (req, res) => {
       });
     }
 
+    // Protect permanent roles
+    if (email.toLowerCase() === 'medicare@gmail.com' || email.toLowerCase() === 'sajnussaharearhojayfa@gmail.com') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify the role of a permanent system account.'
+      });
+    }
+
     const filter = { email };
     const updateDoc = {
       $set: { role }
