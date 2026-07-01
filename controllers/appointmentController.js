@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { appointmentsCollection } from '../utils/db.js';
+import { appointmentsCollection, paymentsCollection } from '../utils/db.js';
 
 // @desc    Create new appointment
 // @route   POST /appointments
@@ -10,7 +10,7 @@ export const createAppointment = async (req, res) => {
     // Auto-set default values for status and timestamp
     const newAppointment = {
       ...appointmentData,
-      appointmentStatus: 'pending',
+      appointmentStatus: 'awaiting_payment',
       paymentStatus: 'unpaid',
       createdAt: new Date().toISOString()
     };
@@ -37,7 +37,7 @@ export const createAppointment = async (req, res) => {
 // @route   GET /appointments
 export const getAllAppointments = async (req, res) => {
   try {
-    const { patientEmail, doctorEmail, status } = req.query;
+    const { patientEmail, doctorEmail, status, paymentStatus } = req.query;
     
     let query = {};
     
@@ -45,6 +45,7 @@ export const getAllAppointments = async (req, res) => {
     if (patientEmail) query.patientEmail = patientEmail;
     if (doctorEmail) query.doctorEmail = doctorEmail;
     if (status) query.appointmentStatus = status;
+    if (paymentStatus) query.paymentStatus = paymentStatus;
 
     // Fetch and sort by newest first
     const appointments = await appointmentsCollection.find(query).sort({ createdAt: -1 }).toArray();
@@ -98,7 +99,7 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid appointment ID format' });
     }
 
-    const allowedStatuses = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
+    const allowedStatuses = ['awaiting_payment', 'pending', 'approved', 'rejected', 'completed', 'cancelled'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -124,6 +125,7 @@ export const updateAppointmentStatus = async (req, res) => {
 
     // Enforce valid state transitions
     const validTransitions = {
+      awaiting_payment: ['pending', 'cancelled'],
       pending:   ['approved', 'rejected', 'cancelled'],
       approved:  ['completed', 'cancelled'],
       rejected:  [],   // terminal
@@ -139,9 +141,36 @@ export const updateAppointmentStatus = async (req, res) => {
       });
     }
 
+    const updateDoc = { $set: { appointmentStatus: status, updatedAt: new Date().toISOString() } };
+    
+    // Automatic refund logic for rejected paid appointments
+    if (status === 'rejected' && existing.paymentStatus === 'paid') {
+      updateDoc.$set.paymentStatus = 'refunded';
+      
+      // Create a demo refund entry in paymentsCollection
+      const count = await paymentsCollection.countDocuments();
+      const refundDisplayId = `REF-2026-${(count + 1).toString().padStart(4, '0')}`;
+      
+      const refundEntry = {
+        appointmentId: existing._id.toString(),
+        patientEmail: existing.patientEmail,
+        patientName: existing.patientName,
+        doctorEmail: existing.doctorEmail,
+        doctorName: existing.doctorName,
+        amount: -(Number(existing.fee) || 0), // Negative amount for refund
+        paymentDate: new Date().toISOString(),
+        transactionId: `refund_${existing.transactionId || new Date().getTime()}`,
+        displayTransactionId: refundDisplayId,
+        friendlyTxnId: refundDisplayId,
+        paymentStatus: 'refunded',
+        type: 'Refund'
+      };
+      await paymentsCollection.insertOne(refundEntry);
+    }
+
     const result = await appointmentsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { appointmentStatus: status, updatedAt: new Date().toISOString() } }
+      updateDoc
     );
 
     if (result.matchedCount === 0) {
@@ -206,6 +235,9 @@ export const updatePaymentStatus = async (req, res) => {
     const updateDoc = { $set: { paymentStatus } };
     if (transactionId) {
       updateDoc.$set.transactionId = transactionId;
+    }
+    if (paymentStatus === 'paid') {
+      updateDoc.$set.appointmentStatus = 'pending';
     }
 
     const result = await appointmentsCollection.updateOne(

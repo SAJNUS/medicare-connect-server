@@ -62,6 +62,15 @@ const doctors = [
 const getRandomRating = () => (4.5 + Math.random() * 0.5).toFixed(1);
 const getRandomReviews = () => Math.floor(Math.random() * 100) + 10;
 
+const generateBio = (name, spec, designation, exp) => {
+  const bioTemplates = [
+    `Dr. ${name} is a distinguished ${designation} in ${spec} with over ${exp} years of clinical experience. Known for a patient-centric approach and compassionate care.`,
+    `With ${exp}+ years of dedicated service, Dr. ${name} brings exceptional expertise as a ${designation} in ${spec}. Committed to advancing patient health outcomes through modern treatments.`,
+    `As a highly regarded ${designation} specializing in ${spec}, Dr. ${name} has spent ${exp} years providing top-tier medical care. A trusted professional with a remarkable track record.`
+  ];
+  return bioTemplates[Math.floor(Math.random() * bioTemplates.length)];
+};
+
 async function seedDoctors() {
   try {
     await client.connect();
@@ -73,7 +82,26 @@ async function seedDoctors() {
 
     let upsertCount = 0;
 
-    for (const doc of doctors) {
+    const scheduleTemplates = [
+      { days: ["Monday", "Wednesday", "Friday"], slots: ["09:00 AM", "12:00 PM", "03:00 PM"] },
+      { days: ["Tuesday", "Thursday", "Saturday"], slots: ["10:00 AM", "01:00 PM", "04:00 PM"] },
+      { days: ["Sunday", "Tuesday", "Thursday"], slots: ["08:00 AM", "11:00 AM", "02:00 PM"] },
+      { days: ["Saturday", "Monday", "Wednesday"], slots: ["11:00 AM", "02:00 PM", "05:00 PM"] },
+      { days: ["Wednesday", "Friday", "Sunday"], slots: ["09:00 AM", "12:00 PM", "03:00 PM"] },
+      { days: ["Monday", "Wednesday", "Friday"], slots: ["01:00 PM", "04:00 PM", "07:00 PM"] },
+      { days: ["Tuesday", "Thursday", "Saturday"], slots: ["08:00 AM", "11:00 AM", "02:00 PM"] },
+      { days: ["Sunday", "Tuesday", "Thursday"], slots: ["10:00 AM", "01:00 PM", "04:00 PM"] },
+      { days: ["Saturday", "Monday", "Wednesday"], slots: ["09:00 AM", "12:00 PM", "03:00 PM"] },
+      { days: ["Wednesday", "Friday", "Sunday"], slots: ["11:00 AM", "02:00 PM", "05:00 PM"] }
+    ];
+
+    for (let i = 0; i < doctors.length; i++) {
+      const doc = doctors[i];
+      const template = scheduleTemplates[i % scheduleTemplates.length];
+      const availableTimeSlots = {};
+      template.days.forEach(day => {
+        availableTimeSlots[day] = template.slots;
+      });
       const formattedName = doc.name.toLowerCase().replace(/\s+/g, '_');
       const photoURL = `/doctors/dr_${formattedName}.png`;
       const password = doc.email.charAt(0).toUpperCase() + doc.email.slice(1);
@@ -110,11 +138,11 @@ async function seedDoctors() {
           consultationFee: doc.fee,
           qualifications: ['MBBS', `MD (${doc.specialization})`, 'FCPS'],
           hospitalName: 'Medicare Connect General Hospital',
-          bio: `Highly experienced ${doc.designation} specializing in ${doc.specialization}. Dedicated to providing the best patient care.`,
+          bio: generateBio(doc.name, doc.specialization, doc.designation, doc.exp),
           rating: parseFloat(getRandomRating()),
           totalReviews: getRandomReviews(),
-          availableDays: ['Monday', 'Wednesday', 'Friday'],
-          availableSlots: ['10:00 AM', '12:00 PM', '04:00 PM', '06:00 PM'],
+          availableDays: template.days,
+          availableTimeSlots: availableTimeSlots,
           verificationStatus: 'verified',
           photoURL: photoURL,
           updatedAt: now
