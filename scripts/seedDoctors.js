@@ -108,7 +108,7 @@ async function seedDoctors() {
           designation: doc.designation,
           experience: doc.exp,
           consultationFee: doc.fee,
-          qualifications: 'MBBS, FCPS',
+          qualifications: ['MBBS', `MD (${doc.specialization})`, 'FCPS'],
           hospitalName: 'Medicare Connect General Hospital',
           bio: `Highly experienced ${doc.designation} specializing in ${doc.specialization}. Dedicated to providing the best patient care.`,
           rating: parseFloat(getRandomRating()),

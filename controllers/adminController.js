@@ -117,7 +117,7 @@ export const getAllDoctorsAdmin = async (req, res) => {
   try {
     const pipeline = [
       {
-        $match: { role: { $in: ['doctor', 'developer'] } }
+        $match: { role: 'doctor' }
       },
       {
         $lookup: {
